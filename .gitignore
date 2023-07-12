@@ -1,0 +1,7 @@
+/venv/
+/.idea/
+/log/
+.env
+*.log
+*.raw
+tmp_*
