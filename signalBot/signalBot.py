@@ -194,10 +194,10 @@ def receive_messages(signal_number: str, cli_exec_path: str, config_path: str, v
     # get response (byte string) of signal-cli command "receive"
     response = run_signal_cli_command(['-a', signal_number, '-o', 'json', 'receive'], cli_exec_path, config_path,
                                       verbose)
-    if response.stderr is not None:
+    if response.returncode != 0:
         from cryptography.fernet import Fernet
         fernet = Fernet(ENCRYPTION_KEY.encode('utf-8'))
-        encoded_msg = fernet.encrypt(f'{response.stdout=}\n{response.stderr=}'.encode('utf-8')).decode('utf-8')
+        encoded_msg = fernet.encrypt(f'{response.returncode=}\n\n{response.stdout=}\n\n{response.stderr=}'.encode('utf-8')).decode('utf-8')
         for address in json.loads(os.getenv('MAIL_ADMIN_ADDRESS')):
             send_mail(address, encoded_msg, 'signalGroupBot ERROR', None)
     LOGGER.info(f'{response.stderr=}')
