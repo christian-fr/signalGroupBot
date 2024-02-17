@@ -10,7 +10,10 @@ from signalBot.mailUtil import send_mail
 from signalBot.util import Email, convert_epoch_timestamp_into_str, \
     run_signal_cli_command, send_message, reformat_timestamp, cmd_send_to_user_number, cmd_add_attachment, \
     cmd_send_to_group, LOGGER, flatten
-from crypt import METHOD_BLOWFISH
+
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+assert ENCRYPTION_KEY is not None
+
 
 def add_timestamp_str(msg_dict_envelope: dict) -> dict:
     msg_dict_envelope['timestamp_str'] = convert_epoch_timestamp_into_str(msg_dict_envelope['timestamp'])
@@ -192,8 +195,11 @@ def receive_messages(signal_number: str, cli_exec_path: str, config_path: str, v
     response = run_signal_cli_command(['-a', signal_number, '-o', 'json', 'receive'], cli_exec_path, config_path,
                                       verbose)
     if response.stderr is not None:
+        from cryptography.fernet import Fernet
+        fernet = Fernet(ENCRYPTION_KEY.encode('utf-8'))
+        encoded_msg = fernet.encrypt(f'{response.stdout=}\n{response.stderr=}'.encode('utf-8')).decode('utf-8')
         for address in json.loads(os.getenv('MAIL_ADMIN_ADDRESS')):
-            send_mail(address, f'{response.stdout=}\n{response.stderr=}', 'signalGroupBot ERROR', None)
+            send_mail(address, encoded_msg, 'signalGroupBot ERROR', None)
     LOGGER.info(f'{response.stderr=}')
     LOGGER.info(f'{response.stdout=}')
     LOGGER.info(f'{response.returncode=}')
